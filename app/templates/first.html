@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mega Jump - Earn Points!</title>
+    <style>
+        body { text-align: center; font-family: 'Arial', sans-serif; background: #222; color: white; overflow: hidden; }
+        #gameCanvas { background: #333; border: 4px solid #FF3366; border-radius: 10px; cursor: pointer; }
+        .stats { font-size: 24px; margin: 10px; }
+        .ad-box { width: 728px; height: 90px; background: #444; margin: 10px auto; border: 2px dashed #777; line-height: 90px; color: #999; }
+    </style>
+</head>
+<body>
+
+    <div class="ad-box">--- AD REVENUE BANNER HERE ---</div>
+    <div class="stats">Score: <span id="score">0</span> | High Score: <span id="highscore">0</span></div>
+    
+    <canvas id="gameCanvas" width="800" height="200"></canvas>
+    
+    <p>Click or press <b>SPACE</b> to Jump!</p>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let score = 0;
+        let highscore = localStorage.getItem("highscore") || 0;
+        document.getElementById("highscore").innerHTML = highscore;
+
+        let player = { x: 50, y: 150, w: 30, h: 30, dy: 0, jumpForce: 12, grounded: true };
+        let gravity = 0.6;
+        let obstacles = [];
+        let gameSpeed = 5;
+        let frame = 0;
+
+        function spawnObstacle() {
+            let size = Math.random() * (40 - 20) + 20;
+            obstacles.push({ x: canvas.width, y: 200 - size, w: 20, h: size });
+        }
+
+        function update() {
+            frame++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Player Physics
+            if (!player.grounded) {
+                player.dy += gravity;
+                player.y += player.dy;
+            }
+            if (player.y > 150) {
+                player.y = 150;
+                player.grounded = true;
+            }
+
+            // Draw Player
+            ctx.fillStyle = "#00FFCC";
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+
+            // Obstacles
+            if (frame % 100 == 0) spawnObstacle();
+            
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let o = obstacles[i];
+                o.x -= gameSpeed;
+                
+                // Draw Obstacle (Spikes)
+                ctx.fillStyle = "#FF3366";
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+
+                // Collision (Hitbox)
+                if (player.x < o.x + o.w && player.x + player.w > o.x && player.y < o.y + o.h && player.y + player.h > o.y) {
+                    gameOver();
+                }
+
+                if (o.x + o.w < 0) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    document.getElementById("score").innerHTML = score;
+                    if(score % 5 == 0) gameSpeed += 0.2; // Speed up!
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        function jump() {
+            if (player.grounded) {
+                player.dy = -player.jumpForce;
+                player.grounded = false;
+            }
+        }
+
+        function gameOver() {
+            if (score > highscore) {
+                localStorage.setItem("highscore", score);
+            }
+            alert("Game Over! Score: " + score + "\nClick OK to try and beat your record!");
+            location.reload();
+        }
+
+        window.addEventListener("keydown", (e) => { if(e.code === "Space") jump(); });
+        canvas.addEventListener("click", jump);
+
+        update();
+    </script>
+</body>
+</html>
